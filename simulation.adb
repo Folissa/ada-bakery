@@ -20,8 +20,8 @@ procedure Simulation is
 
    Product_Name : constant array (Product_Type) of String (1 .. 6) :=
      ("Flour ", "Water ", "Sugar ", "Yeast ", "Butter");
-   Recipe_Name : constant array (Recipe_Type) of String (1 .. 10) :=
-     ("Bun       ", "Bread     ", "Shortbread");
+   Recipe_Name : constant array (Recipe_Type) of String (1 .. 5) :=
+     ("Bun  ", "Bread", "Cake ");
    package Random_Recipe is new Ada.Numerics.Discrete_Random (Recipe_Type);
 
    -- Producer produces determined product
@@ -64,11 +64,11 @@ procedure Simulation is
          Product_Type_Number := Product;
          Production          := Production_Time;
       end Start;
-      Put_Line ("Started producer of " & Product_Name (Product_Type_Number));
+      Put_Line ("Started production of " & Product_Name (Product_Type_Number));
       loop
          delay Duration (Random_Production.Random (G)); --  symuluj produkcje
          Put_Line
-           ("Produced product " & Product_Name (Product_Type_Number) &
+           ("Produced " & Product_Name (Product_Type_Number) &
             " number " & Integer'Image (Product_Number));
          -- Accept for storage
          S.Take (Product_Type_Number, Product_Number);
@@ -98,7 +98,7 @@ procedure Simulation is
          Client_No := Client_Number;
          Consumption := Consumption_Time;
       end Start;
-      Put_Line ("Started client " & Client_Name (Client_No));
+      Put_Line (Client_Name (Client_No) & " woke up");
       loop
          delay Duration
            (Random_Consumption.Random (G)); --  simulate consumption
@@ -118,14 +118,14 @@ procedure Simulation is
 
          if Recipe_Count /= 0 then
             Put_Line
-              (Client_Name (Client_No) & " got their fresh " &
+              (Client_Name (Client_No) & " got their " &
                Recipe_Name (Recipe_Type) & " which is the" &
                Integer'Image (Recipe_Count) & Ordinal_Suffix &
-               " " & Recipe_Name (Recipe_Type) & " of today.");
+               " " & Recipe_Name (Recipe_Type) & " of today");
          else
             Put_Line
               (Client_Name (Client_No) & " did not get their " &
-               Recipe_Name (Recipe_Type) & ".");
+               Recipe_Name (Recipe_Type));
          end if;
       end loop;
    end Client;
@@ -213,20 +213,21 @@ procedure Simulation is
       end Storage_Contents;
 
    begin
-      Put_Line ("Storage started");
+      Put_Line ("Storage was opened for today");
       Setup_Variables;
       loop
             accept Take (Product : in Product_Type; Number : in Integer) do
                if Can_Accept (Product) then
                   Put_Line
-                    ("Accepted product " & Product_Name (Product) &
-                     " number " & Integer'Image (Number));
+                    (Product_Name (Product) &
+                     " number" & Integer'Image (Number) & " was delivered to the storage");
                   Storage (Product) := Storage (Product) + 1;
                   In_Storage        := In_Storage + 1;
                else
+                  -- TODO: Product can't be rejected! - use select here?-
                   Put_Line
-                    ("Rejected product " & Product_Name (Product) &
-                     " number " & Integer'Image (Number));
+                    (Product_Name (Product) &
+                     " number" & Integer'Image (Number) & " could not be delivered to the storage");
                end if;
             end Take;
             Storage_Contents;
@@ -234,7 +235,7 @@ procedure Simulation is
             do
                if Can_Deliver (Recipe) then
                   Put_Line
-                    ("Delivered result of recipe " & Recipe_Name (Recipe) &
+                    ("Baked the " & Recipe_Name (Recipe) &
                      " number " & Integer'Image (Recipe_Count (Recipe)));
                   for W in Product_Type loop
                      Storage (W) :=
@@ -245,7 +246,7 @@ procedure Simulation is
                   Recipe_Count (Recipe) := Recipe_Count (Recipe) + 1;
                else
                   Put_Line
-                    ("Lacking products for recipe " &
+                    ("Lacking products for the " &
                      Recipe_Name (Recipe));
                   Number := 0;
                end if;
