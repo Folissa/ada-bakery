@@ -7,8 +7,8 @@ with Ada.Integer_Text_IO;
 with Ada.Numerics.Discrete_Random;
 
 procedure Simulation is
-   Number_Of_Products   : constant Integer := 5;
-   Number_Of_Recipes : constant Integer := 3;
+   Number_Of_Products : constant Integer := 5;
+   Number_Of_Recipes  : constant Integer := 3;
    Number_Of_Clients  : constant Integer := 2;
 
    subtype Ordinal_Suffix_Type is String (1 .. 2);
@@ -39,7 +39,7 @@ procedure Simulation is
 
    -- In the Buffer, products are assemblied into an assembly
    task type Storage is
-       -- Accept a product to the storage provided there is a room for it
+      -- Accept a product to the storage provided there is a room for it
       entry Take (Product : in Product_Type; Number : in Integer);
       -- Deliver an assembly provided there are enough products for it
       entry Deliver (Recipe : in Recipe_Type; Number : out Integer);
@@ -68,21 +68,23 @@ procedure Simulation is
       loop
          delay Duration (Random_Production.Random (G)); --  symuluj produkcje
          Put_Line
-           ("Produced " & Product_Name (Product_Type_Number) &
-            " number " & Integer'Image (Product_Number));
+           ("Produced " & Product_Name (Product_Type_Number) & " number " &
+            Integer'Image (Product_Number));
          -- Accept for storage
-         loop   
+         loop
             select
-                S.Take (Product_Type_Number, Product_Number);
-                Product_Number := Product_Number + 1;
-                exit;
+               S.Take (Product_Type_Number, Product_Number);
+               Product_Number := Product_Number + 1;
+               exit;
             else
-                Put_Line("Delivery person is waiting to deliver " &
-                Product_Name (Product_Type_Number) & " number " & Integer'Image (Product_Number));
-                delay 5.0;
+               Put_Line
+                 ("Delivery person is waiting to deliver " &
+                  Product_Name (Product_Type_Number) & " number " &
+                  Integer'Image (Product_Number));
+               delay 5.0;
             end select;
          end loop;
-       end loop;
+      end loop;
    end Producer;
 
    task body Client is
@@ -90,11 +92,11 @@ procedure Simulation is
       package Random_Consumption is new Ada.Numerics.Discrete_Random
         (Consumption_Time_Range);
       G : Random_Consumption.Generator;  --  random number generator (time)
-      G2              : Random_Recipe.Generator;    --  also (assemblies)
-      Client_No     : Client_Type;
+      G2           : Random_Recipe.Generator;    --  also (assemblies)
+      Client_No    : Client_Type;
       Recipe_Count : Integer;
-      Consumption     : Integer;
-      Recipe_Type   : Integer;
+      Consumption  : Integer;
+      Recipe_Type  : Integer;
       Client_Name : constant array
         (1 .. Number_Of_Clients) of String (1 .. 6) :=
         ("Alicja", "Bogdan");
@@ -104,7 +106,7 @@ procedure Simulation is
       do
          Random_Consumption.Reset (G);   --  ustaw generator
          Random_Recipe.Reset (G2);     --  tez
-         Client_No := Client_Number;
+         Client_No   := Client_Number;
          Consumption := Consumption_Time;
       end Start;
       Put_Line (Client_Name (Client_No) & " woke up");
@@ -126,14 +128,14 @@ procedure Simulation is
             Ordinal_Suffix := "rd";
          else
             Ordinal_Suffix := "th";
-         end if;    
+         end if;
 
          if Recipe_Count /= 0 then
             Put_Line
               (Client_Name (Client_No) & " got their " &
                Recipe_Name (Recipe_Type) & " which is the" &
-               Integer'Image (Recipe_Count) & Ordinal_Suffix &
-               " " & Recipe_Name (Recipe_Type) & " of today");
+               Integer'Image (Recipe_Count) & Ordinal_Suffix & " " &
+               Recipe_Name (Recipe_Type) & " of today");
          else
             Put_Line
               (Client_Name (Client_No) & " did not get their " &
@@ -145,12 +147,12 @@ procedure Simulation is
    task body Storage is
       Storage_Capacity : constant Integer := 15;
       type Storage_type is array (Product_Type) of Integer;
-      Storage          : Storage_type := (0, 0, 0, 0, 0);
+      Storage        : Storage_type := (0, 0, 0, 0, 0);
       Recipe_Content : array (Recipe_Type, Product_Type) of Integer :=
         ((2, 1, 1, 1, 0), (3, 2, 1, 3, 0), (1, 1, 2, 1, 2));
       Max_Product_Needed : array (Product_Type) of Integer;
-      Recipe_Count      : array (Recipe_Type) of Integer := (1, 1, 1);
-      In_Storage           : Integer                          := 0;
+      Recipe_Count       : array (Recipe_Type) of Integer := (1, 1, 1);
+      In_Storage         : Integer                        := 0;
 
       procedure Setup_Variables is
       begin
@@ -164,45 +166,48 @@ procedure Simulation is
          end loop;
       end Setup_Variables;
 
-      function Can_Accept(Product: Product_Type) return Boolean is
-	 Free: Integer;		--  free room in the storage
-	 -- how many products are for production of arbitrary assembly
-	 Lacking: array(Product_Type) of Integer;
-	 -- how much room is needed in storage to produce arbitrary assembly
-	 Lacking_room: Integer;
-	 MP: Boolean;			--  can accept
+      function Can_Accept (Product : Product_Type) return Boolean is
+         Free : Integer;         --  free room in the storage
+         -- how many products are for production of arbitrary assembly
+         Lacking : array (Product_Type) of Integer;
+         -- how much room is needed in storage to produce arbitrary assembly
+         Lacking_room  : Integer;
+         Should_Accept : Boolean;                   --  can accept
       begin
-	 if In_Storage >= Storage_Capacity then
-	    return False;
-	 end if;
-	 -- There is free room in the storage
-	 Free := Storage_Capacity - In_Storage;
-	 MP := True;
-	 for W in Product_Type loop
-	    if Storage(W) < Max_Product_Needed (W) then
-	       MP := False;
-	    end if;
-	 end loop;
-	 if MP then
-	    return True;		--  storage has products for arbitrary
-	       				--  assembly
-	 end if;
-	 if Integer'Max(0, Max_Product_Needed(Product) - Storage(Product)) > 0 then -- czy ty moze byc na minusie
-	    -- exactly this product lacks
-	    return True;
-	 end if;
-	 Lacking_room := 1;			--  insert current product
-	 for W in Product_Type loop
-	    Lacking(W) := Integer'Max(0, Max_Product_Needed(W) - Storage(W));
-	    Lacking_room := Lacking_room + Lacking(W);
-	 end loop;
-	 if Free >= Lacking_room then
-	    -- there is enough room in storage for arbitrary assembly
-	    return True;
-	 else
-	    -- no room for this product
-	    return False;
-	 end if;
+         if In_Storage >= Storage_Capacity then
+            return False;
+         end if;
+         -- There is free room in the storage
+         Free          := Storage_Capacity - In_Storage;
+         Should_Accept := True;
+         for W in Product_Type loop
+            if Storage (W) < Max_Product_Needed (W) then
+               Should_Accept := False;
+            end if;
+         end loop;
+         if Should_Accept then
+            return True;                --  storage has products for arbitrary
+            --  assembly
+         end if;
+         if Integer'Max (0, Max_Product_Needed (Product) - Storage (Product)) >
+           0
+         then -- czy ty moze byc na minusie
+            -- exactly this product lacks
+            return True;
+         end if;
+         Lacking_room := 1;                     --  insert current product
+         for W in Product_Type loop
+            Lacking (W) :=
+              Integer'Max (0, Max_Product_Needed (W) - Storage (W));
+            Lacking_room := Lacking_room + Lacking (W);
+         end loop;
+         if Free >= Lacking_room then
+            -- there is enough room in storage for arbitrary assembly
+            return True;
+         else
+            -- no room for this product
+            return False;
+         end if;
       end Can_Accept;
 
       function Can_Deliver (Recipe : Recipe_Type) return Boolean is
@@ -224,45 +229,77 @@ procedure Simulation is
          end loop;
       end Storage_Contents;
 
+      procedure Find_Free_Place (Product : Product_Type; Number : Integer) is
+         Max_Product_Count : Integer;
+         Max_Product_Type  : Product_Type;
+      begin
+         Max_Product_Count := 0;
+
+         for W in Product_Type loop
+            if Storage (W) > Max_Product_Count and W /= Product then
+               Max_Product_Type  := W;
+               Max_Product_Count := Storage (W);
+            end if;
+         end loop;
+
+         if Max_Product_Count /= 0 then
+            Storage (Max_Product_Type) := Storage (Max_Product_Type) - 1;
+            Storage (Product)          := Storage (Product) + 1;
+            Put_Line
+              ("1 " & Product_Name (Max_Product_Type) &
+               " was thrown out of the storage to take " &
+               Product_Name (Product) & " number " & Integer'Image (Number));
+         else
+            Put_Line
+              ("There was no place for " & Product_Name (Product) &
+               " number " & Integer'Image (Number) & ", so it was thrown out");
+         end if;
+
+      end Find_Free_Place;
+
    begin
       Put_Line ("Storage was opened for today");
       Setup_Variables;
       loop
-          accept Take (Product : in Product_Type; Number : in Integer) do
-              if Can_Accept(Product) then
-                  Put_Line("Delivered " & Product_Name(Product) & " number" &
-                  Integer'Image(Number) & " to the storage");
-                  Storage(Product) := Storage(Product) + 1;
-                 In_Storage := In_Storage + 1;
-              else
-                  Put_Line("Can not take in " & Product_Name(Product) & " number" &
-                  Integer'Image(Number) & " to the storage");
-             end if;
-          end Take;
-          
-          Storage_Contents;
+         select
+            accept Take (Product : in Product_Type; Number : in Integer) do
+               if Can_Accept (Product) then
+                  Put_Line
+                    ("Delivered " & Product_Name (Product) & " number" &
+                     Integer'Image (Number) & " to the storage");
+                  Storage (Product) := Storage (Product) + 1;
+                  In_Storage        := In_Storage + 1;
+               else
+                  Put_Line
+                    ("Searching for free place for " & Product_Name (Product) &
+                     " number" & Integer'Image (Number) &
+                     " in storage room...");
+                  delay 2.0;
+                  Find_Free_Place (Product, Number);
+               end if;
+            end Take;
 
-            accept Deliver (Recipe : in Recipe_Type; Number : out Integer)
-            do
+            Storage_Contents;
+         or
+            accept Deliver (Recipe : in Recipe_Type; Number : out Integer) do
                if Can_Deliver (Recipe) then
                   Put_Line
-                    ("Baked the " & Recipe_Name (Recipe) &
-                     " number " & Integer'Image (Recipe_Count (Recipe)));
+                    ("Baked the " & Recipe_Name (Recipe) & " number " &
+                     Integer'Image (Recipe_Count (Recipe)));
                   for W in Product_Type loop
-                     Storage (W) :=
-                       Storage (W) - Recipe_Content (Recipe, W);
-                     In_Storage := In_Storage - Recipe_Content (Recipe, W);
+                     Storage (W) := Storage (W) - Recipe_Content (Recipe, W);
+                     In_Storage  := In_Storage - Recipe_Content (Recipe, W);
                   end loop;
-                  Number                     := Recipe_Count (Recipe);
+                  Number                := Recipe_Count (Recipe);
                   Recipe_Count (Recipe) := Recipe_Count (Recipe) + 1;
                else
                   Put_Line
-                    ("Lacking products for the " &
-                     Recipe_Name (Recipe));
+                    ("Lacking products for the " & Recipe_Name (Recipe));
                   Number := 0;
                end if;
             end Deliver;
             Storage_Contents;
+         end select;
       end loop;
    end Storage;
 
