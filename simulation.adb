@@ -112,6 +112,9 @@ procedure Simulation is
          delay Duration
            (Random_Consumption.Random (G)); --  simulate consumption
          Recipe_Type := Random_Recipe.Random (G2);
+         Put_Line
+           (Client_Name (Client_No) & " is waiting for " &
+            Recipe_Name (Recipe_Type));
          -- take an assembly for consumption
          S.Deliver (Recipe_Type, Recipe_Count);
 
