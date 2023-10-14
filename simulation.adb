@@ -11,8 +11,6 @@ procedure Simulation is
    Number_Of_Recipes : constant Integer := 3;
    Number_Of_Clients  : constant Integer := 2;
 
-   Accepted : Boolean;
-   
    subtype Ordinal_Suffix_Type is String (1 .. 2);
    Ordinal_Suffix : Ordinal_Suffix_Type;
 
@@ -41,7 +39,6 @@ procedure Simulation is
 
    -- In the Buffer, products are assemblied into an assembly
    task type Storage is
-      entry Check_Acception (Product : in Product_Type);
        -- Accept a product to the storage provided there is a room for it
       entry Take (Product : in Product_Type; Number : in Integer);
       -- Deliver an assembly provided there are enough products for it
@@ -74,10 +71,18 @@ procedure Simulation is
            ("Produced " & Product_Name (Product_Type_Number) &
             " number " & Integer'Image (Product_Number));
          -- Accept for storage
-         S.Check_Acception (Product_Type_Number);
-         S.Take (Product_Type_Number, Product_Number);
-         Product_Number := Product_Number + 1;
-      end loop;
+         loop   
+            select
+                S.Take (Product_Type_Number, Product_Number);
+                Product_Number := Product_Number + 1;
+                exit;
+            else
+                Put_Line("Delivery person is waiting to deliver " &
+                Product_Name (Product_Type_Number) & " number " & Integer'Image (Product_Number));
+                delay 5.0;
+            end select;
+         end loop;
+       end loop;
    end Producer;
 
    task body Client is
@@ -220,24 +225,20 @@ procedure Simulation is
       Put_Line ("Storage was opened for today");
       Setup_Variables;
       loop
-          accept Check_Acception (Product: in Product_Type) do
-              if Can_Accept (Product) then
-                  Accepted := True;
+          accept Take (Product : in Product_Type; Number : in Integer) do
+              if Can_Accept(Product) then
+                  Put_Line("Delivered " & Product_Name(Product) & " number" &
+                  Integer'Image(Number) & " to the storage");
+                  Storage(Product) := Storage(Product) + 1;
+                 In_Storage := In_Storage + 1;
               else
-                  Accepted := False;
-              end if;
-          end Check_Acception; 
-          select
-              when Accepted => accept Take (Product : in Product_Type; Number : in Integer) do
-                  Put_Line (Product_Name (Product) & " number" & Integer'Image (Number) & " was delivered to the storage");
-                  Storage (Product) := Storage (Product) + 1;
-                  In_Storage        := In_Storage + 1;
-              end Take;
-          or
-              delay 5.0;
-              Put_Line ("Can not take the product to the storage. Waiting for 5 seconds...");
-          end select;
-            Storage_Contents;
+                  Put_Line("Can not take in " & Product_Name(Product) & " number" &
+                  Integer'Image(Number) & " to the storage");
+             end if;
+          end Take;
+          
+          Storage_Contents;
+
             accept Deliver (Recipe : in Recipe_Type; Number : out Integer)
             do
                if Can_Deliver (Recipe) then
