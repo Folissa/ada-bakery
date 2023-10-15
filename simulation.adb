@@ -145,7 +145,7 @@ procedure Simulation is
    end Client;
 
    task body Storage is
-      Storage_Capacity : constant Integer := 15;
+      Storage_Capacity : constant Integer := 30;
       type Storage_type is array (Product_Type) of Integer;
       Storage        : Storage_type := (0, 0, 0, 0, 0);
       Recipe_Content : array (Recipe_Type, Product_Type) of Integer :=
